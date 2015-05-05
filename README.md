@@ -23,9 +23,33 @@ myMc.$bind('enterFrame',function(){
 
 ```
 
-Events suported.
+## Events suported.
 
+- enterFrame
+- removed
+- load
+- mouseMove
+- mouseUp
+- mouseDown
+- mouseOver
+- mouseOut
+- releaseOutside
+- click
+- mouseWhell
+- rollOut
+- rollOver
+- rightClick
 
+## Alias
+
+- $click = $bind('click');
+- $hover([function mouseOver],[function mouseOut]) = $bind('mouseOver')
+- $mouseOver([function mouseOver],[function mouseOut]) = $bind('mouseOver')
+- $mouseMove = $bind('mouseMove');
+- $mouseOut = $bind('mouseOut');
+- $mouseUp = $bind('mouseUp');
+- $enterFrame = $bind('enterFrame');
+- $mouseDown([function mouseDown],[function release || releaseOutside]) = $bind('mouseDown')
 
 ---------------------------------
 
