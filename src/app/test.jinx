@@ -1,0 +1,22 @@
+require('../../../index.jinx');
+require('jinx-mempanel')();
+
+
+var myMc = new foo();
+
+myMc.x = 250;
+myMc.y = 100;
+addChild(myMc);
+
+
+myMc.$bind('enterFrame',function(){
+	this.rotation+=2.5;
+}).$bind('click',function(){
+	this.y+=5;
+}).$hover(function(){
+	this.alpha=0.5;
+},function(){
+	this.alpha=1;
+})
+
+

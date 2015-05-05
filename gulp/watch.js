@@ -6,7 +6,6 @@ var browserSync = require('browser-sync');
 var through = require('through2');
 var path = require('path');
 var fs = require('fs');
-var jinxLoader = require('jinx-loader');
 var jinxInject = require('gulp-jinx-inject');
 var ext_replace = require('gulp-ext-replace');
 var jinxCompiler = require('jinx-compiler')
@@ -51,20 +50,20 @@ module.exports = function(options) {
 
 	gulp.task('copy',function(){
 		return gulp.src([
-			'index.jinx'
-			// options.src +'/**/*.as',
+			'index.jinx',
+			options.src +'/**/*.{as,swc,jinx}',
 		])
 		.pipe(gulp.dest(tmpFolder));
 	});
 
-
 	gulp.task('build', ['copy'], function () {
-		var mainFile = path.join(tmpFolder,'index.jinx');
-		var pkgs = jinxLoader(mainFile);
+		var mainFile = path.join(tmpFolder,'app/test.jinx');
 
-		return gulp.src('./index.jinx')
+		return gulp.src(options.src +'/app/test.jinx')
 		.pipe(through.obj(function (file, enc, callback) {
-			file.contents = new Buffer(jinxCompiler(file));
+			var resp = jinxCompiler(file);
+			file.contents = resp.contents;
+			file.swc = resp.swc;
 			callback(null,file);
 		}))
 		.pipe(ext_replace('.as'))
@@ -72,12 +71,12 @@ module.exports = function(options) {
 		.pipe(flash(options.src + '/app/flash/dist',{
 			'debug':true, // enable this for detailed errors
 			'library-path': [
-				// options.src + '/app/flash/libs'
-			].concat(pkgs.swc)
+				options.src + '/app/flash/libs'
+			]
 		}));
 	});
 
-	gulp.watch([options.src + '/app/flash/**/*.{as,jinx,swc}'], function(event) {
+	gulp.watch([options.src + '/**/*.{as,jinx,swc}','index.jinx'], function(event) {
 		gulp.start('build',function(){
 			browserSync.reload(event.path);
 		});

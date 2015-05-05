@@ -1,67 +1,87 @@
-/* START EVENTS TRIGGERS */
-var $getEventTypes = function(){
-	var eventsTypes = [];
-		eventsTypes['enterFrame']={'is':Event,'do':'ENTER_FRAME'};
-		eventsTypes['removed']={'is':Event,'do':'REMOVED'};
-		eventsTypes['load']={'is':Event,'do':'ACTIVATE'};
-		eventsTypes['mouseMove']={'is':MouseEvent,'do':'MOUSE_MOVE'};
-		eventsTypes['mouseUp']={'is':MouseEvent,'do':'MOUSE_UP'};
-		eventsTypes['mouseDown']={'is':MouseEvent,'do':'MOUSE_DOWN'};
-		eventsTypes['mouseOver']={'is':MouseEvent,'do':'MOUSE_OVER'};
-		eventsTypes['mouseOut']={'is':MouseEvent,'do':'MOUSE_OUT'};
-		eventsTypes['releaseOutside']={'is':MouseEvent,'do':'RELEASE_OUTSIDE'};
-		eventsTypes['click']={'is':MouseEvent,'do':'CLICK'};
-		eventsTypes['mouseWhell']={'is':MouseEvent,'do':'MOUSE_WHEEL'};
-		eventsTypes['rollOut']={'is':MouseEvent,'do':'ROLL_OUT'};
-		eventsTypes['rollOver']={'is':MouseEvent,'do':'ROLL_OVER'};
-		eventsTypes['rightClick']={'is':MouseEvent,'do':'RIGHT_MOUSE_DOWN'};
-	return eventsTypes;
+import flash.events.Event;
+import flash.events.MouseEvent;
+import flash.display.*;
+import flash.utils.*;
+
+var eventsTypes = {
+	enterFrame:{'is':Event,'do':'ENTER_FRAME'},
+	removed:{'is':Event,'do':'REMOVED'},
+	load:{'is':Event,'do':'ACTIVATE'},
+	mouseMove:{'is':MouseEvent,'do':'MOUSE_MOVE'},
+	mouseUp:{'is':MouseEvent,'do':'MOUSE_UP'},
+	mouseDown:{'is':MouseEvent,'do':'MOUSE_DOWN'},
+	mouseOver:{'is':MouseEvent,'do':'MOUSE_OVER'},
+	mouseOut:{'is':MouseEvent,'do':'MOUSE_OUT'},
+	releaseOutside:{'is':MouseEvent,'do':'RELEASE_OUTSIDE'},
+	click:{'is':MouseEvent,'do':'CLICK'},
+	mouseWhell:{'is':MouseEvent,'do':'MOUSE_WHEEL'},
+	rollOut:{'is':MouseEvent,'do':'ROLL_OUT'},
+	rollOver:{'is':MouseEvent,'do':'ROLL_OVER'},
+	rightClick:{'is':MouseEvent,'do':'RIGHT_MOUSE_DOWN'}
 }
 
-MovieClip.prototype.$bind = function(typeEvent,callbackOrOptions,callback2=null,idFunc=null){
-	var callback;
-	var options;
-	if(typeof callbackOrOptions === 'object'){
-		options={
-			'hand':callbackOrOptions.hand
-		};
-		callback=callback2;
-	} else {
-		options={
-			'hand':true
-		};
-		callback=callbackOrOptions;
-	}
-	if(typeof callback2 !== 'function') idFunc=callback2;
+var _isNumber = function(n) {
+	return !isNaN(parseFloat(n)) && isFinite(n);
+}
 
-	var eventsTypes = $getEventTypes();
+var _nextNewIndex = function(obj){
+	var c=0;
+	for(var i in obj) if(_isNumber(i)) c++;
+	return c;
+}
+
+var _extend = function (destObj) {
+	for (var i = 1; i < arguments.length; i++) {
+		for (var key in arguments[i]) {
+			destObj[key] = arguments[i][key];
+		}
+	}
+	return destObj;
+};
+
+MovieClip.prototype.$bind = function(typeEvent,callback,options){
+	var defaults = {
+		buttonMode:true,
+		useHandCursor:true,
+		mouseChildren:false,
+		id:null
+	};
+
+	options = _extend({}, defaults, options);
 
 	if(eventsTypes[typeEvent]['is'] === MouseEvent){
-		this.$set('mouseChildren',false)
-		.$if(options.hand)
-		.$set({'buttonMode':true,'useHandCursor':true});
+		this.mouseChildren=options.mouseChildren;
+		this.buttonMode=options.buttonMode;
+		this.useHandCursor=options.useHandCursor;
 	}
 
 	if(!this.bindFuncs) this.bindFuncs={};
 	if(!this.bindFuncs[eventsTypes[typeEvent]['do']]) this.bindFuncs[eventsTypes[typeEvent]['do']]={};
 
-	var tmpvar;
-	this.addEventListener(eventsTypes[typeEvent]['is'][eventsTypes[typeEvent]['do']],tmpvar = function(e){
-		if(callback!=null)callback.call(e.target,e,tmpvar);
-	});
-	if(!idFunc){
-		this.bindFuncs[eventsTypes[typeEvent]['do']][$nextNewIndex(this.bindFuncs[eventsTypes[typeEvent]['do']])]=tmpvar;
+	var bindFunc = function(e){
+		if(callback) callback.call(e.target,e,this);
+	};
+
+	this.addEventListener(eventsTypes[typeEvent]['is'][eventsTypes[typeEvent]['do']],bindFunc);
+
+	if(!options.id){
+		this.bindFuncs[eventsTypes[typeEvent]['do']][_nextNewIndex(this.bindFuncs[eventsTypes[typeEvent]['do']])]=bindFunc;
 	} else {
-		this.bindFuncs[eventsTypes[typeEvent]['do']][idFunc]=tmpvar;
+		this.bindFuncs[eventsTypes[typeEvent]['do']][options.id]=bindFunc;
 	}
 
 	return this;
 }
 
-MovieClip.prototype.$unbind = function(typeEvent,idFunc=null,keepCursor=false){
-	var eventsTypes = $getEventTypes(), i;
-
+MovieClip.prototype.$unbind = function(typeEvent,options){
 	if(!this.bindFuncs || !this.bindFuncs[eventsTypes[typeEvent]['do']] || this.bindFuncs[eventsTypes[typeEvent]['do']].length==0) return this;
+	var i;
+	var defaults = {
+		keepCursor:false,
+		id:null
+	};
+
+	options = _extend({}, defaults, options);
 
 	if(eventsTypes[typeEvent]['is'] === MouseEvent){
 		var d=true;
@@ -75,20 +95,22 @@ MovieClip.prototype.$unbind = function(typeEvent,idFunc=null,keepCursor=false){
 			if(!d)break;
 		}
 
-		this.$if(!d && !keepCursor).$set({'buttonMode':false,'useHandCursor':false});
+		if(!d && !options.keepCursor){
+			this.buttonMode = false;
+			this.useHandCursor = false;
+		}
 	}
 
-	if(typeof idFunc == 'function'){
-
+	if(typeof options.id == 'function'){
 		for(i in this.bindFuncs[eventsTypes[typeEvent]['do']]){
-			if(this.bindFuncs[eventsTypes[typeEvent]['do']][i]==idFunc){
+			if(this.bindFuncs[eventsTypes[typeEvent]['do']][i]==options.id){
 				this.removeEventListener(eventsTypes[typeEvent]['is'][eventsTypes[typeEvent]['do']],this.bindFuncs[eventsTypes[typeEvent]['do']][i]);
 				return this;
 			}
 		}
 	}
 
-	if(!idFunc){
+	if(!options.id){
 		for(i in this.bindFuncs[eventsTypes[typeEvent]['do']]){
 			this.removeEventListener(eventsTypes[typeEvent]['is'][eventsTypes[typeEvent]['do']],this.bindFuncs[eventsTypes[typeEvent]['do']][i]);
 		}
@@ -98,47 +120,33 @@ MovieClip.prototype.$unbind = function(typeEvent,idFunc=null,keepCursor=false){
 	if(
 	this.bindFuncs &&
 	this.bindFuncs[eventsTypes[typeEvent]['do']] &&
-	this.bindFuncs[eventsTypes[typeEvent]['do']][idFunc]
+	this.bindFuncs[eventsTypes[typeEvent]['do']][options.id]
 	){
-		this.removeEventListener(eventsTypes[typeEvent]['is'][eventsTypes[typeEvent]['do']],this.bindFuncs[eventsTypes[typeEvent]['do']][idFunc]);
-		delete this.bindFuncs[eventsTypes[typeEvent]['do']][idFunc];
+		this.removeEventListener(eventsTypes[typeEvent]['is'][eventsTypes[typeEvent]['do']],this.bindFuncs[eventsTypes[typeEvent]['do']][options.id]);
+		delete this.bindFuncs[eventsTypes[typeEvent]['do']][options.id];
 	}
 	return this;
 }
 
 MovieClip.prototype.$unbindAll = function(typeEvent=null){
 	if(!this.bindFuncs) return this;
-	var i, c=0;
-	for(i in this.bindFuncs) c++;
-	if(c==0) return this;
-	var eventsTypes = $getEventTypes();
-	for (var index in eventsTypes){
-		for(i in this.bindFuncs[eventsTypes[index]['do']]){
-			if(typeEvent && typeEvent!=index) continue;
-			this.removeEventListener(eventsTypes[index]['is'][eventsTypes[index]['do']],this.bindFuncs[eventsTypes[index]['do']][i]);
+	var i, k, c=0;
+	for(i in this.bindFuncs) c++; //count attr in obj
+	if(!c) return this;
+
+	for (i in eventsTypes){
+		for(k in this.bindFuncs[eventsTypes[i]['do']]){
+			if(typeEvent && typeEvent!=i) continue;
+			this.removeEventListener(eventsTypes[i]['is'][eventsTypes[i]['do']],this.bindFuncs[eventsTypes[i]['do']][k]);
 		}
 	}
-	this.$set({'buttonMode':false,'useHandCursor':false});
+	this.buttonMode = false;
+	this.useHandCursor = false;
 
 	return this;
 }
 
-var $releaseOutside = function(callback){
-	/* SCHEMA : HAVE TO BE PUT INSIDE MOUSE BINDS
-	$bind('click or other mouse event',function(){
-		>here<
-	})*/
-	if(callback==null) return;
-
-	var tmpvar;
-	stage.addEventListener(MouseEvent.MOUSE_UP, tmpvar = function(e){
-		callback.call(e.target,e);
-		stage.removeEventListener(MouseEvent.MOUSE_UP, tmpvar);
-	});
-}
-
-/* REG ALIAS */
-
+/* ALIAS */
 MovieClip.prototype.$click = function(callback,idFunc=null){
 	return this.$bind('click',callback,idFunc);
 }
