@@ -2,8 +2,14 @@
 
 [Jinx](https://github.com/webcaetano/jinx) module for chaining prototype events
 
+## Installation
+```
+npm install jinx-events
+```
+
 Example
 ```javascript
+require('jinx-events');
 
 var myMc = new foo();
 
